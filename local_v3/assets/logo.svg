@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<rect width="128" height="128" rx="28" fill="#0b0b0d"/>
+<rect x="22" y="18" width="84" height="38" rx="14" fill="#ffcc12"/>
+<text x="64" y="44" text-anchor="middle" font-family="Arial Black,Arial" font-size="21" fill="#111">ТАКСИ</text>
+<text x="64" y="88" text-anchor="middle" font-family="Arial Black,Arial" font-size="30" fill="#fff">БОНУС</text>
+<g fill="#ffcc12"><rect x="37" y="99" width="14" height="10"/><rect x="59" y="99" width="14" height="10"/><rect x="81" y="99" width="14" height="10"/><rect x="48" y="109" width="14" height="10"/><rect x="70" y="109" width="14" height="10"/></g>
+</svg>
