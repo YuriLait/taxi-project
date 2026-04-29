@@ -68,6 +68,27 @@ setInterval(() => {
 
 /* ================= ORDERS ================= */
 
+app.post('/auth/demo-login', (req, res) => {
+    res.json({
+        token: 'demo-token',
+        user: {
+            id: 'admin',
+            full_name: 'Администратор',
+            role: 'admin'
+        }
+    });
+});
+
+app.get('/me', (req, res) => {
+    res.json({
+        user: {
+            id: 'admin',
+            full_name: 'Администратор',
+            role: 'admin'
+        }
+    });
+});
+
 app.get('/orders', async(req, res) => {
     try {
         const { data, error } = await supabase
