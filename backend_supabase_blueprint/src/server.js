@@ -48,7 +48,7 @@ app.get('/events', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    res.flushHeaders ? .();
+    if (res.flushHeaders) res.flushHeaders();
 
     res.write(`data: ${JSON.stringify({
         type: 'connected',
@@ -64,7 +64,7 @@ app.get('/events', (req, res) => {
 
 setInterval(() => {
     broadcast('heartbeat');
-}, 25000).unref ? .();
+}, 25000);
 
 /* ================= ORDERS ================= */
 
