@@ -14,16 +14,7 @@ const APP_SECRET = process.env.APP_SECRET || 'taxi-app-secret-change-me';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-const ORDER_STATUSES = [
-    'new',
-    'accepted',
-    'car_assigned',
-    'on_the_way',
-    'in_progress',
-    'completed',
-    'cancelled'
-];
-
+const ORDER_STATUSES = ['new', 'accepted', 'car_assigned', 'on_the_way', 'in_progress', 'completed', 'cancelled'];
 const DRIVER_STATUSES = ['free', 'busy', 'offline'];
 
 function signToken(payload) {
@@ -35,9 +26,11 @@ function signToken(payload) {
 function verifyToken(token) {
     if (!token || !token.includes('.')) return null;
 
-    const [body, sig] = token.split('.');
-    const expected = crypto.createHmac('sha256', APP_SECRET).update(body).digest('base64url');
+    const parts = token.split('.');
+    const body = parts[0];
+    const sig = parts[1];
 
+    const expected = crypto.createHmac('sha256', APP_SECRET).update(body).digest('base64url');
     if (sig !== expected) return null;
 
     try {
@@ -61,7 +54,6 @@ async function getUserFromRequest(req) {
         .single();
 
     if (error) return null;
-
     return data;
 }
 
@@ -213,7 +205,6 @@ app.get('/orders', requireAuth(['admin', 'dispatcher', 'driver']), async(req, re
         }
 
         const { data, error } = await query;
-
         if (error) throw error;
 
         const result = data.map((order) => {
@@ -286,7 +277,6 @@ app.post('/orders', requireAuth(['admin', 'dispatcher']), async(req, res) => {
         };
 
         broadcast('order.created', result);
-
         res.status(201).json(result);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -373,7 +363,6 @@ app.patch('/orders/:id', requireAuth(['admin', 'dispatcher', 'driver']), async(r
         };
 
         broadcast('order.updated', result);
-
         res.json(result);
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -459,7 +448,6 @@ app.patch('/drivers/:id', requireAuth(['admin', 'dispatcher', 'driver']), async(
         if (error) throw error;
 
         broadcast('driver.updated', data);
-
         res.json(data);
     } catch (error) {
         res.status(400).json({ error: error.message });
