@@ -197,7 +197,7 @@ app.get('/orders', requireAuth(['admin', 'dispatcher', 'driver']), async(req, re
     try {
         let query = supabase
             .from('orders')
-            .select('*, drivers(id, full_name, phone, car, plate, status)')
+            .select('*, drivers(id, full_name, phone, car, plate, status), clients(id, full_name, phone, note)')
             .order('created_at', { ascending: false });
 
         if (req.user.role === 'driver') {
@@ -210,7 +210,8 @@ app.get('/orders', requireAuth(['admin', 'dispatcher', 'driver']), async(req, re
         const result = data.map((order) => {
             return {
                 ...order,
-                driver: order.drivers || null
+                driver: order.drivers || null,
+                client: order.clients || null
             };
         });
 
@@ -245,10 +246,41 @@ app.post('/orders', requireAuth(['admin', 'dispatcher']), async(req, res) => {
             payload.status = 'car_assigned';
         }
 
+        let clientId = null;
+
+        if (payload.reference_phone) {
+            const { data: existing, error: existingError } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('phone', payload.reference_phone)
+                .maybeSingle();
+
+            if (existingError) throw existingError;
+
+            if (existing) {
+                clientId = existing.id;
+            } else {
+                const { data: newClient, error: clientError } = await supabase
+                    .from('clients')
+                    .insert({
+                        full_name: payload.client_name,
+                        phone: payload.reference_phone
+                    })
+                    .select('id')
+                    .single();
+
+                if (clientError) throw clientError;
+                clientId = newClient.id;
+            }
+        }
+
         const { data: inserted, error } = await supabase
             .from('orders')
-            .insert(payload)
-            .select('*, drivers(id, full_name, phone, car, plate, status)')
+            .insert({
+                ...payload,
+                client_id: clientId
+            })
+            .select('*, drivers(id, full_name, phone, car, plate, status), clients(id, full_name, phone, note)')
             .single();
 
         if (error) throw error;
@@ -259,7 +291,7 @@ app.post('/orders', requireAuth(['admin', 'dispatcher']), async(req, res) => {
             .from('orders')
             .update({ order_number })
             .eq('id', inserted.id)
-            .select('*, drivers(id, full_name, phone, car, plate, status)')
+            .select('*, drivers(id, full_name, phone, car, plate, status), clients(id, full_name, phone, note)')
             .single();
 
         if (updateError) throw updateError;
@@ -273,7 +305,8 @@ app.post('/orders', requireAuth(['admin', 'dispatcher']), async(req, res) => {
 
         const result = {
             ...updated,
-            driver: updated.drivers || null
+            driver: updated.drivers || null,
+            client: updated.clients || null
         };
 
         broadcast('order.created', result);
@@ -338,7 +371,7 @@ app.patch('/orders/:id', requireAuth(['admin', 'dispatcher', 'driver']), async(r
             .from('orders')
             .update(patch)
             .eq('id', id)
-            .select('*, drivers(id, full_name, phone, car, plate, status)')
+            .select('*, drivers(id, full_name, phone, car, plate, status), clients(id, full_name, phone, note)')
             .single();
 
         if (error) throw error;
@@ -359,7 +392,8 @@ app.patch('/orders/:id', requireAuth(['admin', 'dispatcher', 'driver']), async(r
 
         const result = {
             ...data,
-            driver: data.drivers || null
+            driver: data.drivers || null,
+            client: data.clients || null
         };
 
         broadcast('order.updated', result);
@@ -379,13 +413,17 @@ app.get('/drivers/:id/orders', requireAuth(['admin', 'dispatcher', 'driver']), a
 
         const { data, error } = await supabase
             .from('orders')
-            .select('*, drivers(id, full_name, phone, car, plate, status)')
+            .select('*, drivers(id, full_name, phone, car, plate, status), clients(id, full_name, phone, note)')
             .eq('driver_id', driverId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
 
-        res.json(data);
+        res.json(data.map((order) => ({
+            ...order,
+            driver: order.drivers || null,
+            client: order.clients || null
+        })));
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
