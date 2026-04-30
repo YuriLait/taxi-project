@@ -429,6 +429,29 @@ app.get('/drivers/:id/orders', requireAuth(['admin', 'dispatcher', 'driver']), a
     }
 });
 
+app.get('/clients/search', requireAuth(['admin', 'dispatcher']), async(req, res) => {
+    try {
+        const phone = String(req.query.phone || '').trim();
+
+        if (!phone) {
+            return res.json([]);
+        }
+
+        const { data, error } = await supabase
+            .from('clients')
+            .select('*')
+            .ilike('phone', `%${phone}%`)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (error) throw error;
+
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.get('/clients', requireAuth(['admin', 'dispatcher']), async(_req, res) => {
     try {
         const { data, error } = await supabase
