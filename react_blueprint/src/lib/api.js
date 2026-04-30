@@ -33,8 +33,10 @@ async function request(path, options = {}) {
     return data;
 }
 
-export async function demoLogin(login, password) {
-    const data = await request('/auth/demo-login', {
+/* ================= AUTH ================= */
+
+export async function login(login, password) {
+    const data = await request('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ login, password })
     });
@@ -51,12 +53,10 @@ export function logout() {
     setAuthToken('');
 }
 
+/* ================= ORDERS ================= */
+
 export function getOrders() {
     return request('/orders');
-}
-
-export function getDriverOrders(driverId) {
-    return request(`/drivers/${driverId}/orders`);
 }
 
 export function createOrder(payload) {
@@ -73,9 +73,17 @@ export function updateOrder(id, payload) {
     });
 }
 
+/* ================= CLIENTS ================= */
+
 export function getClients() {
     return request('/clients');
 }
+
+export function searchClients(phone) {
+    return request(`/clients/search?phone=${encodeURIComponent(phone)}`);
+}
+
+/* ================= DRIVERS ================= */
 
 export function getDrivers() {
     return request('/drivers');
@@ -87,6 +95,8 @@ export function updateDriver(id, payload) {
         body: JSON.stringify(payload)
     });
 }
+
+/* ================= REALTIME ================= */
 
 export function subscribeRealtime(onMessage, onError) {
     if (!window.EventSource) return () => {};
