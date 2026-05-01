@@ -34,15 +34,7 @@ const statusLabels = {
   cancelled: 'Отменён'
 };
 
-const statusFlow = [
-  'new',
-  'accepted',
-  'car_assigned',
-  'on_the_way',
-  'in_progress',
-  'completed',
-  'cancelled'
-];
+const statusFlow = ['new', 'accepted', 'car_assigned', 'on_the_way', 'in_progress', 'completed', 'cancelled'];
 
 const driverStatusLabels = {
   free: 'На линии',
@@ -64,7 +56,7 @@ export default function App() {
   const [form, setForm] = useState(emptyOrder);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   async function loadData() {
@@ -103,7 +95,6 @@ export default function App() {
     const unsubscribe = subscribeRealtime(
       (event) => {
         setRealtimeStatus('онлайн');
-
         if (event && ['order.created', 'order.updated', 'driver.updated'].includes(event.type)) {
           loadData();
         }
@@ -121,11 +112,11 @@ export default function App() {
     const onlineDrivers = drivers.filter((item) => item.status !== 'offline').length;
 
     return {
-      revenue,
-      paid,
+      ordersCount: orders.length,
       active,
       onlineDrivers,
-      ordersCount: orders.length,
+      revenue,
+      paid,
       average: orders.length ? Math.round(revenue / orders.length) : 0
     };
   }, [orders, drivers]);
@@ -136,7 +127,6 @@ export default function App() {
 
   async function handleCreateOrder(event) {
     event.preventDefault();
-
     setError('');
     setNotice('');
     setIsSaving(true);
@@ -161,6 +151,7 @@ export default function App() {
 
   async function handleOrderPatch(orderId, patch) {
     setError('');
+    setNotice('');
 
     try {
       await updateOrder(orderId, patch);
@@ -241,6 +232,7 @@ export default function App() {
           setRoleView={setRoleView}
           onRefresh={loadData}
           isLoading={isLoading}
+          setScreen={setScreen}
         />
 
         {error ? <div className="alert error">{error}</div> : null}
@@ -258,6 +250,7 @@ export default function App() {
 
         {screen === 'orders' && (
           <OrdersScreen
+            stats={stats}
             orders={orders}
             drivers={drivers}
             form={form}
@@ -318,7 +311,7 @@ function Sidebar({ title, screen, setScreen, onLogout }) {
   );
 }
 
-function Topbar({ user, realtimeStatus, roleView, setRoleView, onRefresh, isLoading }) {
+function Topbar({ user, realtimeStatus, roleView, setRoleView, onRefresh, isLoading, setScreen }) {
   return (
     <header className="topbar">
       <div>
@@ -330,16 +323,14 @@ function Topbar({ user, realtimeStatus, roleView, setRoleView, onRefresh, isLoad
         <div className="search">⌕ Поиск по заказам, клиентам, водителям...</div>
         <span className="online-dot">● Realtime: {realtimeStatus}</span>
 
-        <button
-          className="dark-btn"
-          onClick={() => setRoleView(roleView === 'admin' ? 'dispatcher' : 'admin')}
-        >
+        <button className="dark-btn" onClick={() => setRoleView(roleView === 'admin' ? 'dispatcher' : 'admin')}>
           {roleView === 'admin' ? 'Диспетчер' : 'Админ'}
         </button>
 
         <button className="dark-btn" onClick={() => setRoleView('driver')}>Водитель</button>
         <button className="dark-btn" onClick={() => setRoleView('developer')}>Разработчик</button>
-        <button className="orange-btn" onClick={onRefresh}>{isLoading ? '...' : 'Обновить'}</button>
+        <button className="orange-btn" onClick={() => setScreen('orders')}>+ Новый заказ</button>
+        <button className="dark-btn" onClick={onRefresh}>{isLoading ? '...' : 'Обновить'}</button>
 
         <div className="user-pill">
           <div className="avatar">👤</div>
@@ -384,37 +375,30 @@ function Dashboard({ stats, orders, drivers, setScreen, onPatch }) {
         <div className="panel large">
           <div className="panel-title">
             <h2>Активные заказы</h2>
-            <button onClick={() => setScreen('orders')}>Смотреть все</button>
+            <button onClick={() => setScreen('orders')}>Смотреть все →</button>
           </div>
 
           <OrdersTable orders={orders.slice(0, 6)} drivers={drivers} onPatch={onPatch} compact />
         </div>
 
         <MapPanel />
+
         <StatusDonut orders={orders} />
+
         <RevenueChart />
+
         <EventsPanel orders={orders} />
+
         <DriversOnline drivers={drivers} />
       </section>
     </>
   );
 }
 
-function OrdersScreen({ orders, drivers, form, updateForm, onCreate, isSaving, onPatch }) {
+function OrdersScreen({ stats, orders, drivers, form, updateForm, onCreate, isSaving, onPatch }) {
   return (
     <>
-      <KpiCards
-        stats={{
-          ordersCount: orders.length,
-          active: orders.filter((item) => !['completed', 'cancelled'].includes(item.status)).length,
-          onlineDrivers: drivers.filter((item) => item.status !== 'offline').length,
-          revenue: orders.reduce((sum, item) => sum + Number(item.price || 0), 0),
-          paid: orders.reduce((sum, item) => sum + Number(item.total_paid || 0), 0),
-          average: orders.length
-            ? Math.round(orders.reduce((sum, item) => sum + Number(item.price || 0), 0) / orders.length)
-            : 0
-        }}
-      />
+      <KpiCards stats={stats} />
 
       <section className="orders-workspace">
         <div className="panel orders-list-panel">
